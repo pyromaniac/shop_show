@@ -1,0 +1,41 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require_relative '../app/boot'
+require_relative '../operations/order/create'
+
+def print_order_summary(order)
+  puts 'Order'
+  order.order_lines.each do |line|
+    puts "#{line.product_name}: #{line.quantity}x #{line.unit_price.format} = #{line.line_total.format}"
+    line.line_adjustments.each { |adjustment| puts "  - #{adjustment.label}: -#{adjustment.amount.format}" }
+  end
+  puts <<~SUMMARY
+    ---
+    Lines Total:    #{order.lines_total.format}
+    Discount Total: #{order.discount_total.format}
+    Subtotal:       #{order.subtotal.format}
+    Shipping:       #{order.shipping.format}
+    Total:          #{order.total.format}
+    Order ID:       #{order.id}
+  SUMMARY
+end
+
+cart = Cart.create!(currency: 'USD')
+cart.cart_lines.create!(product_name: 'Ruby Book', unit_price: Money.new(5000, 'USD'), quantity: 2)
+cart.cart_lines.create!(product_name: 'Coffee Mug', unit_price: Money.new(1500, 'USD'), quantity: 1)
+
+order = Order::Create.new.call(cart:)
+print_order_summary(order)
+
+# Example output:
+# Order
+# Ruby Book: 2x $50.00 = $100.00
+# Coffee Mug: 1x $15.00 = $15.00
+# ---
+# Lines Total:    $115.00
+# Discount Total: $0.00
+# Subtotal:       $115.00
+# Shipping:       $0.00
+# Total:          $115.00
+# Order ID:       1
