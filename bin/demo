@@ -25,17 +25,25 @@ cart = Cart.create!(currency: 'USD')
 cart.cart_lines.create!(product_name: 'Ruby Book', unit_price: Money.new(5000, 'USD'), quantity: 2)
 cart.cart_lines.create!(product_name: 'Coffee Mug', unit_price: Money.new(1500, 'USD'), quantity: 1)
 
-order = Order::Create.new.call(cart:)
-print_order_summary(order)
+Discount.create!(name: '10% Off', percentage: 10)
+Discount.create!(name: '15% Off', percentage: 15)
+
+params = { carrier_id: 'standard' }
+result = Order::Create.new.call(params, cart:)
+print_order_summary(result[:order])
 
 # Example output:
 # Order
 # Ruby Book: 2x $50.00 = $100.00
+#   - 10% Off: -$10.00
+#   - 15% Off: -$13.50
 # Coffee Mug: 1x $15.00 = $15.00
+#   - 10% Off: -$1.50
+#   - 15% Off: -$2.03
 # ---
 # Lines Total:    $115.00
-# Discount Total: $0.00
-# Subtotal:       $115.00
-# Shipping:       $0.00
-# Total:          $115.00
+# Discount Total: $27.03
+# Subtotal:       $87.97
+# Shipping:       $8.00
+# Total:          $95.97
 # Order ID:       1
