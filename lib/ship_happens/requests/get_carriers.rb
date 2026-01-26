@@ -15,4 +15,8 @@ class ShipHappens::Requests::GetCarriers < ShipHappens::Request
   def method
     :get
   end
+
+  def response_class
+    ShipHappens::Responses::Carriers
+  end
 end

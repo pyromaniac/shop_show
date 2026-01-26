@@ -2,7 +2,7 @@
 
 # Supports:
 # - Gateway / Anti-Corruption Layer: single entry point for the shipping boundary.
-# - Typed data contracts: centralizes typed request definitions.
+# - Typed data contracts: centralizes typed request and response definitions.
 # - Dependency Inversion: callers require this entry point, not concrete files.
 
 require 'dry-struct'
@@ -14,9 +14,13 @@ require_relative '../app/types'
 
 module ShipHappens
   module Requests; end
+  module Responses; end
 end
 
 require_relative 'ship_happens/client'
 require_relative 'ship_happens/request'
 require_relative 'ship_happens/requests/get_carriers'
 require_relative 'ship_happens/requests/create_shipment'
+require_relative 'ship_happens/responses/errors'
+require_relative 'ship_happens/responses/carriers'
+require_relative 'ship_happens/responses/shipment'

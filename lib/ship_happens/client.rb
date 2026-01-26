@@ -6,6 +6,7 @@
 # - Objects as functions: #call makes the client composable.
 # - Interface Segregation: depends only on the request protocol.
 # - Functional core / imperative shell: this is the input/output boundary.
+# - Typed data contracts: returns a typed response object.
 
 class ShipHappens::Client
   extend Dry::Initializer
@@ -21,7 +22,11 @@ class ShipHappens::Client
       request_object.headers
     )
 
-    response.body
+    if response.success?
+      request_object.response_class.new(response.body)
+    else
+      ShipHappens::Responses::Errors.new(response.body)
+    end
   end
 
   private

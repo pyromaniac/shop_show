@@ -15,6 +15,10 @@ class ShipHappens::Request < Dry::Struct
     raise NotImplementedError
   end
 
+  def response_class
+    raise NotImplementedError
+  end
+
   def to_payload
     to_hash.deep_transform_keys { |key| key.to_s.camelize(:lower) }
   end

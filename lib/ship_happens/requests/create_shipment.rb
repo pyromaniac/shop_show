@@ -14,4 +14,8 @@ class ShipHappens::Requests::CreateShipment < ShipHappens::Request
   def path
     'shipments'
   end
+
+  def response_class
+    ShipHappens::Responses::Shipment
+  end
 end
