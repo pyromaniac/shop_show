@@ -21,6 +21,16 @@ def print_order_summary(order)
   SUMMARY
 end
 
+def print_shipment_summary(shipment)
+  puts
+  puts 'Shipment'
+  puts "Shipment ID:      #{shipment.id}"
+  puts "External ID:      #{shipment.external_id}"
+  puts "Status:           #{shipment.status}"
+  puts "Tracking Number:  #{shipment.tracking_number}"
+  puts "Tracking URL:     #{shipment.tracking_url}"
+end
+
 cart = Cart.create!(currency: 'USD')
 cart.cart_lines.create!(product_name: 'Ruby Book', unit_price: Money.new(5000, 'USD'), quantity: 2)
 cart.cart_lines.create!(product_name: 'Coffee Mug', unit_price: Money.new(1500, 'USD'), quantity: 1)
@@ -28,11 +38,24 @@ cart.cart_lines.create!(product_name: 'Coffee Mug', unit_price: Money.new(1500, 
 Discount.create!(name: '10% Off', percentage: 10)
 Discount.create!(name: '15% Off', percentage: 15)
 
-params = { carrier_id: 'standard' }
-result = Order::Create.new.call(params, cart:)
+mock_client = lambda do |request|
+  puts "  [ShipHappens] POST #{request.path}"
+  request.response_class.new(
+    'id' => 'ship_123',
+    'status' => 'pending',
+    'trackingNumber' => 'TRK123',
+    'trackingUrl' => 'https://track.example.com/TRK123'
+  )
+end
+create_shipment = Shipment::Create.new(client: mock_client)
+
+params = { carrier_id: 'standard', address: '123 Ruby Lane, San Francisco, CA 94102, US' }
+result = Order::Create.new(create_shipment:).call(params, cart:)
 print_order_summary(result[:order])
+print_shipment_summary(result[:shipment])
 
 # Example output:
+#   [ShipHappens] POST shipments
 # Order
 # Ruby Book: 2x $50.00 = $100.00
 #   - 10% Off: -$10.00
@@ -47,3 +70,10 @@ print_order_summary(result[:order])
 # Shipping:       $8.00
 # Total:          $95.97
 # Order ID:       1
+# 
+# Shipment
+# Shipment ID:      1
+# External ID:      ship_123
+# Status:           pending
+# Tracking Number:  TRK123
+# Tracking URL:     https://track.example.com/TRK123
