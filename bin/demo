@@ -53,9 +53,10 @@ mock_client = lambda do |request|
   )
 end
 create_shipment = Shipment::Create.new(client: mock_client)
+operation = Order::Create.operation(create_shipment:)
 
 params = { carrier_id: 'standard', address: '123 Ruby Lane, San Francisco, CA 94102, US' }
-result = Order::Create.new(create_shipment:).call(params, cart:)
+result = operation.call(params, cart:)
 if result.failure?
   print_failure(result.errors)
 else
@@ -64,7 +65,7 @@ else
 end
 
 failure_params = { carrier_id: 'overnight', address: '123 Ruby Lane, San Francisco, CA 94102, US' }
-failure_result = Order::Create.new(create_shipment:).call(failure_params, cart:)
+failure_result = operation.call(failure_params, cart:)
 print_failure(failure_result.errors) if failure_result.failure?
 
 # Example output:
