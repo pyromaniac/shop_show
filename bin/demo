@@ -4,8 +4,8 @@
 require_relative '../app/boot'
 require_relative '../operations/order/create'
 
-def print_order_summary(order)
-  puts 'Order'
+def print_order_summary(order, title: 'Order')
+  puts title
   order.order_lines.each do |line|
     puts "#{line.product_name}: #{line.quantity}x #{line.unit_price.format} = #{line.line_total.format}"
     line.line_adjustments.each { |adjustment| puts "  - #{adjustment.label}: -#{adjustment.amount.format}" }
@@ -54,14 +54,24 @@ mock_client = lambda do |request|
 end
 create_shipment = Shipment::Create.new(client: mock_client)
 operation = Order::Create.operation(create_shipment:)
+best_order_calculator = Checkout::OrderCalculator.new(discount_calculator: Checkout::BestDiscountCalculator.new)
+best_operation = Order::Create.operation(create_shipment:, order_calculator: best_order_calculator)
 
 params = { carrier_id: 'standard', address: '123 Ruby Lane, San Francisco, CA 94102, US' }
 result = operation.call(params, cart:)
 if result.failure?
   print_failure(result.errors)
 else
-  print_order_summary(result.context[:order])
+  print_order_summary(result.context[:order], title: 'Order (Cumulative Discounts)')
   print_shipment_summary(result.context[:shipment])
+end
+
+best_result = best_operation.call(params, cart:)
+if best_result.failure?
+  print_failure(best_result.errors)
+else
+  print_order_summary(best_result.context[:order], title: 'Order (Best Discount)')
+  print_shipment_summary(best_result.context[:shipment])
 end
 
 failure_params = { carrier_id: 'overnight', address: '123 Ruby Lane, San Francisco, CA 94102, US' }
@@ -70,7 +80,7 @@ print_failure(failure_result.errors) if failure_result.failure?
 
 # Example output:
 #   [ShipHappens] POST shipments
-# Order
+# Order (Cumulative Discounts)
 # Ruby Book: 2x $50.00 = $100.00
 #   - 10% Off: -$10.00
 #   - 15% Off: -$13.50
@@ -87,6 +97,26 @@ print_failure(failure_result.errors) if failure_result.failure?
 # 
 # Shipment
 # Shipment ID:      1
+# External ID:      ship_123
+# Status:           pending
+# Tracking Number:  TRK123
+# Tracking URL:     https://track.example.com/TRK123
+#   [ShipHappens] POST shipments
+# Order (Best Discount)
+# Ruby Book: 2x $50.00 = $100.00
+#   - 15% Off: -$15.00
+# Coffee Mug: 1x $15.00 = $15.00
+#   - 15% Off: -$2.25
+# ---
+# Lines Total:    $115.00
+# Discount Total: $17.25
+# Subtotal:       $97.75
+# Shipping:       $8.00
+# Total:          $105.75
+# Order ID:       2
+# 
+# Shipment
+# Shipment ID:      2
 # External ID:      ship_123
 # Status:           pending
 # Tracking Number:  TRK123
