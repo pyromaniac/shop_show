@@ -4,14 +4,14 @@
 # - Objects as functions: exposes a single #call entry point.
 # - Single Responsibility: persistence only, no orchestration.
 # - Interface Segregation: depends on the narrow data it needs.
-# - Protocol-based polymorphism (uniform step interface): returns a context hash.
+# - Protocol-based polymorphism (uniform step interface): returns a Result with context.
 
 class Order::Persist
   def call(_, cart:, calculation:, **)
     order = create_order(calculation, cart.currency)
     create_order_lines(order, calculation.lines, cart.currency)
 
-    { order: }
+    Result.success(order:)
   end
 
   private

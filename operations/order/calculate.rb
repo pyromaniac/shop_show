@@ -11,7 +11,10 @@ class Order::Calculate
 
   option :calculator, default: -> { Checkout::OrderCalculator.new }
 
-  def call(_, cart:, discounts:, shipping:, **)
+  def call(_, cart:, discounts: nil, shipping: nil, **)
+    return Result.failure(errors: 'missing_discounts') unless discounts
+    return Result.failure(errors: 'missing_shipping') unless shipping
+
     calculation = calculator.call(
       cart_lines: cart.cart_lines,
       currency: cart.currency,
@@ -19,6 +22,6 @@ class Order::Calculate
       shipping:
     )
 
-    { calculation: }
+    Result.success(calculation:)
   end
 end

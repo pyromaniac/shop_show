@@ -7,6 +7,7 @@ require_relative '../../lib/ship_happens'
 # - Dependency Injection (constructor): client is injected via dry-initializer.
 # - Gateway / Anti-Corruption Layer: isolates external shipping details.
 # - Single Responsibility: creates and synchronizes shipments only.
+# - Railway Oriented Programming (success/failure pipelines): errors are values.
 
 class Shipment::Create
   extend Dry::Initializer
@@ -24,7 +25,7 @@ class Shipment::Create
     ))
 
     if response.is_a?(ShipHappens::Responses::Errors)
-      raise StandardError, response.errors.map(&:message).join(', ')
+      return Result.failure(errors: response.errors.map(&:message))
     end
 
     shipment.update!(
@@ -34,6 +35,6 @@ class Shipment::Create
       tracking_url: response.tracking_url
     )
 
-    { shipment: }
+    Result.success(shipment:)
   end
 end

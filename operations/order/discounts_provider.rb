@@ -7,6 +7,6 @@
 
 class Order::DiscountsProvider
   def call(_, **)
-    { discounts: Discount.all.to_a }
+    Result.success(discounts: Discount.all.to_a)
   end
 end

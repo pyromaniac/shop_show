@@ -31,6 +31,11 @@ def print_shipment_summary(shipment)
   puts "Tracking URL:     #{shipment.tracking_url}"
 end
 
+def print_failure(errors)
+  puts
+  puts "Order failed: #{errors.join(', ')}"
+end
+
 cart = Cart.create!(currency: 'USD')
 cart.cart_lines.create!(product_name: 'Ruby Book', unit_price: Money.new(5000, 'USD'), quantity: 2)
 cart.cart_lines.create!(product_name: 'Coffee Mug', unit_price: Money.new(1500, 'USD'), quantity: 1)
@@ -51,8 +56,16 @@ create_shipment = Shipment::Create.new(client: mock_client)
 
 params = { carrier_id: 'standard', address: '123 Ruby Lane, San Francisco, CA 94102, US' }
 result = Order::Create.new(create_shipment:).call(params, cart:)
-print_order_summary(result[:order])
-print_shipment_summary(result[:shipment])
+if result.failure?
+  print_failure(result.errors)
+else
+  print_order_summary(result.context[:order])
+  print_shipment_summary(result.context[:shipment])
+end
+
+failure_params = { carrier_id: 'overnight', address: '123 Ruby Lane, San Francisco, CA 94102, US' }
+failure_result = Order::Create.new(create_shipment:).call(failure_params, cart:)
+print_failure(failure_result.errors) if failure_result.failure?
 
 # Example output:
 #   [ShipHappens] POST shipments
@@ -77,3 +90,5 @@ print_shipment_summary(result[:shipment])
 # Status:           pending
 # Tracking Number:  TRK123
 # Tracking URL:     https://track.example.com/TRK123
+# 
+# Order failed: unknown_carrier

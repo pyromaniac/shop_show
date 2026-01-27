@@ -13,6 +13,7 @@ require_relative '../shipment/create'
 # - Protocol-based polymorphism (uniform step interface): steps share a tiny contract.
 # - Composition (pipelines/steps): manual step sequencing with explicit data flow.
 # - Transaction + after_commit: shipment is created after persistence succeeds.
+# - Railway Oriented Programming (success/failure pipelines): failures are values.
 
 class Order::Create
   extend Dry::Initializer
@@ -24,19 +25,30 @@ class Order::Create
   option :create_shipment, default: -> { Shipment::Create.new }
 
   def call(params, **context)
-    context = context.merge(discounts_provider.call(params, **context))
-    context = context.merge(shipping_provider.call(params, **context))
-    context = context.merge(calculate_order.call(params, **context))
+    result = discounts_provider.call(params, **context)
+    return result.with_context(context) if result.failure?
+    context = context.merge(result.context)
 
-    shipment_context = {}
-    persisted_context = ActiveRecord::Base.transaction do |transaction|
-      result_context = persist.call(params, **context)
+    result = shipping_provider.call(params, **context)
+    return result.with_context(context) if result.failure?
+    context = context.merge(result.context)
+
+    result = calculate_order.call(params, **context)
+    return result.with_context(context) if result.failure?
+    context = context.merge(result.context)
+
+    shipment_result = Result.success
+    ActiveRecord::Base.transaction do |transaction|
+      result = persist.call(params, **context)
+      context = context.merge(result.context)
       transaction.after_commit do
-        shipment_context = create_shipment.call(params, **context.merge(result_context))
+        shipment_result = create_shipment.call(params, **context)
       end
-      result_context
     end
 
-    context.merge(persisted_context).merge(shipment_context)
+    return shipment_result.with_context(context) if shipment_result.failure?
+    context = context.merge(shipment_result.context)
+
+    Result.success(**context)
   end
 end

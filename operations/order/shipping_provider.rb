@@ -17,8 +17,9 @@ class Order::ShippingProvider
 
   def call(params, cart:, **)
     carrier_id = params[:carrier_id]
-    cents = shipping_rates.fetch(carrier_id)
+    cents = shipping_rates[carrier_id]
+    return Result.failure(errors: 'unknown_carrier') unless cents
 
-    { shipping: Money.new(cents, cart.currency) }
+    Result.success(shipping: Money.new(cents, cart.currency))
   end
 end
